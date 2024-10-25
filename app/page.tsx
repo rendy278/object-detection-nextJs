@@ -29,7 +29,7 @@ const Page: React.FC = () => {
     <main className="w-full h-full bg-black/80 text-white">
       <div
         className={`container p-6 flex flex-col justify-center items-center ${
-          showCamera ? "lg:h-fit h-screen" : "h-screen"
+          showCamera ? "h-fit" : "h-screen"
         }`}
       >
         <div className="title font-extrabold text-center mb-6">
