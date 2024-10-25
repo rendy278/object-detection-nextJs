@@ -27,7 +27,11 @@ const Page: React.FC = () => {
 
   return (
     <main className="w-full h-full bg-black/80 text-white">
-      <div className="container p-6 flex flex-col justify-center items-center h-screen">
+      <div
+        className={`container p-6 flex flex-col justify-center items-center ${
+          showCamera ? "lg:h-fit h-screen" : "h-screen"
+        }`}
+      >
         <div className="title font-extrabold text-center mb-6">
           <h1 className="text-3xl gradient-title">Next.js Object Detection</h1>
           <h2 className="mt-3 text-2xl gradient-title">

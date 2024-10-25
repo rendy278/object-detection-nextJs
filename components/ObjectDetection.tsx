@@ -83,7 +83,7 @@ const ObjectDetection: React.FC = () => {
           <Webcam ref={webCamRef} className="rounded-md h-full w-full" muted />
           <canvas
             ref={canvasRef}
-            className="absolute top-0 left-0 z-[99999] w-full h-96"
+            className="absolute top-0 left-0 z-[99999]  w-full h-40 md:h-96"
           />
         </div>
       )}
