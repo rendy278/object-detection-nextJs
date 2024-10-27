@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ObjectDetection from "@/components/ObjectDetection";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -7,10 +7,30 @@ import "react-toastify/dist/ReactToastify.css";
 const Page: React.FC = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [hasBackCamera, setHasBackCamera] = useState(false);
+
+  useEffect(() => {
+    const checkBackCamera = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
+        const hasEnvironmentCamera = videoInputs.some(
+          (device) =>
+            device.label.toLowerCase().includes("back") ||
+            device.label.toLowerCase().includes("environment")
+        );
+        setHasBackCamera(hasEnvironmentCamera);
+      } catch (error) {
+        console.error("Error saat memeriksa kamera:", error);
+      }
+    };
+    checkBackCamera();
+  }, []);
 
   const toggleCamera = async () => {
     if (!showCamera) {
-      // Menampilkan notifikasi hanya ketika membuka kamera
       try {
         await openCamera(isFrontCamera);
         setShowCamera(true);
@@ -32,17 +52,15 @@ const Page: React.FC = () => {
         facingMode: useFrontCamera ? "user" : { ideal: "environment" },
       },
     };
-    try {
-      await navigator.mediaDevices.getUserMedia(constraints);
-    } catch (error) {
-      if (!useFrontCamera) {
-        toast.error("Kamera belakang tidak tersedia.");
-      }
-      throw error;
-    }
+    await navigator.mediaDevices.getUserMedia(constraints);
   };
 
   const switchCamera = async () => {
+    if (!hasBackCamera && !isFrontCamera) {
+      toast.error("Kamera belakang tidak tersedia.");
+      return;
+    }
+
     setIsFrontCamera((prev) => !prev);
     if (showCamera) {
       try {
