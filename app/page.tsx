@@ -6,12 +6,13 @@ import "react-toastify/dist/ReactToastify.css";
 
 const Page: React.FC = () => {
   const [showCamera, setShowCamera] = useState(false);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
 
   const toggleCamera = async () => {
     if (!showCamera) {
-      // Hanya menampilkan notifikasi ketika membuka kamera
+      // Menampilkan notifikasi hanya ketika membuka kamera
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
+        await openCamera(isFrontCamera);
         setShowCamera(true);
         toast.success("Izin kamera diberikan. Kamera terbuka.");
       } catch (error) {
@@ -25,8 +26,35 @@ const Page: React.FC = () => {
     }
   };
 
+  const openCamera = async (useFrontCamera: boolean) => {
+    const constraints = {
+      video: {
+        facingMode: useFrontCamera ? "user" : { ideal: "environment" },
+      },
+    };
+    try {
+      await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (error) {
+      if (!useFrontCamera) {
+        toast.error("Kamera belakang tidak tersedia.");
+      }
+      throw error;
+    }
+  };
+
+  const switchCamera = async () => {
+    setIsFrontCamera((prev) => !prev);
+    if (showCamera) {
+      try {
+        await openCamera(!isFrontCamera);
+      } catch (error) {
+        console.error("Gagal beralih kamera:", error);
+      }
+    }
+  };
+
   return (
-    <main className="w-full h-full bg-black/80 text-white">
+    <main className="w-full h-full text-white">
       <div
         className={`container p-6 flex flex-col justify-center items-center ${
           showCamera ? "h-fit" : "h-screen"
@@ -39,12 +67,22 @@ const Page: React.FC = () => {
             sound danger.
           </h2>
         </div>
-        <button
-          onClick={toggleCamera}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
-        >
-          {showCamera ? "Tutup Kamera" : "Buka Kamera"}
-        </button>
+        <div className="flex flex-wrap justify-center gap-3 items-center">
+          <button
+            onClick={toggleCamera}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
+          >
+            {showCamera ? "Tutup Kamera" : "Buka Kamera"}
+          </button>
+          {showCamera && (
+            <button
+              onClick={switchCamera}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mb-4"
+            >
+              Ganti ke Kamera {isFrontCamera ? "Belakang" : "Depan"}
+            </button>
+          )}
+        </div>
         {showCamera && <ObjectDetection />}
 
         <ToastContainer

@@ -18,7 +18,7 @@ export const renderPredictions = (
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   // Font settings
-  const font = "16px sans-serif";
+  const font = "30px sans-serif";
   ctx.font = font;
   ctx.textBaseline = "top";
 
