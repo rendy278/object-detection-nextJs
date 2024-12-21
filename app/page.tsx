@@ -21,17 +21,24 @@ const Page: React.FC = () => {
           (device) => device.kind === "videoinput"
         );
 
-        if (videoInputs.length === 1) {
-          // Jika hanya ada satu kamera
-          setFrontCameraId(videoInputs[0].deviceId);
+        if (videoInputs.length > 0) {
+          const frontCamera = videoInputs.find((device) =>
+            device.label.toLowerCase().includes("front")
+          );
+          const backCamera = videoInputs.find((device) =>
+            device.label.toLowerCase().includes("back")
+          );
+
+          setFrontCameraId(frontCamera?.deviceId || null);
+          setBackCameraId(backCamera?.deviceId || null);
+
+          // Default fallback jika label tidak ditemukan
+          if (!frontCamera || !backCamera) {
+            setFrontCameraId(videoInputs[0]?.deviceId || null);
+            setBackCameraId(videoInputs[1]?.deviceId || null);
+          }
         } else {
-          videoInputs.forEach((device) => {
-            if (device.label.toLowerCase().includes("front")) {
-              setFrontCameraId(device.deviceId);
-            } else {
-              setBackCameraId(device.deviceId); // Fallback ke kamera lain
-            }
-          });
+          toast.error("Tidak ada perangkat kamera yang terdeteksi.");
         }
       } catch (error) {
         console.error("Error saat mendapatkan perangkat kamera:", error);
@@ -90,8 +97,17 @@ const Page: React.FC = () => {
 
   // Mengganti kamera
   const switchCamera = async (): Promise<void> => {
+    if (!frontCameraId && !backCameraId) {
+      toast.error("Perangkat tidak memiliki kamera depan atau belakang.");
+      return;
+    }
+
     if (!frontCameraId || !backCameraId) {
-      toast.error("Perangkat tidak memiliki kedua kamera.");
+      toast.warning(
+        `Hanya kamera ${
+          frontCameraId ? "depan" : "belakang"
+        } yang tersedia pada perangkat ini.`
+      );
       return;
     }
 
