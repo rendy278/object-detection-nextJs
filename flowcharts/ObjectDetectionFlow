@@ -1,0 +1,44 @@
+digraph workflow {
+  node [style=filled, fillcolor=lightgrey];
+  
+  // Shapes for different steps
+  Start [label="Mulai"  shape=ellipse, width=0.2];
+  MainPage [label="Tampilkan Kamera dengan Tombol 'Buka Kamera'" shape=box];
+  OpenCameraButton [label="Klik 'Buka Kamera'" shape=box];
+  GetDevice [label="Mengecek apakah perangkat kamera ditemukan" shape=box];
+  CameraFound [label="Perangkat Kamera Ditemukan?" shape=diamond];
+  SetCameraID [label="Kamera ditemukan" shape=box];
+  CameraError [label="Tampilkan Pesan Kesalahan" shape=box];
+  OpenCamera [label="Aktifkan Kamera dengan ID kamera yang ditemukan" shape=box];
+  ShowCamera [label="Tampilkan Kamera & Canvas" shape=box];
+  LoadModel [label="Muat Model COCO-SSD" shape=box];
+  DetectObjects [label="Deteksi Objek Setiap 1 Detik" shape=box];
+  IsPerson [label="Objek adalah 'person'?" shape=diamond];
+  PlayWarningAudio [label="Putar Audio Peringatan" shape=box];
+  ContinueDetection [label="Lanjutkan Deteksi" shape=box];
+  CloseCamera [label="Tutup Kamera?" shape=diamond];
+  StopMediaStream [label="Hentikan Aliran Media" shape=box];
+  Done [label="Selesai" shape=ellipse, width=0.2];
+
+  // Flowchart steps
+  Start -> MainPage;
+  MainPage -> OpenCameraButton;
+  OpenCameraButton -> GetDevice;
+  GetDevice -> CameraFound;
+  CameraFound -> SetCameraID [label="Ya"];
+  CameraFound -> CameraError [label="Tidak"];
+  SetCameraID -> OpenCamera;
+  CameraError -> Done;
+  OpenCamera -> ShowCamera;
+  ShowCamera -> LoadModel;
+  LoadModel -> DetectObjects;
+  DetectObjects -> IsPerson;
+  IsPerson -> PlayWarningAudio [label="Ya"];
+  IsPerson -> ContinueDetection [label="Tidak"];
+  PlayWarningAudio -> DetectObjects;
+  ContinueDetection -> DetectObjects;
+  DetectObjects -> CloseCamera;
+  CloseCamera -> StopMediaStream [label="Ya"];
+  CloseCamera -> DetectObjects [label="Tidak"];
+  StopMediaStream -> Done;
+}
