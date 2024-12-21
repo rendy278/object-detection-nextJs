@@ -8,7 +8,6 @@ import "react-toastify/dist/ReactToastify.css";
 const Page: React.FC = () => {
   const [showCamera, setShowCamera] = useState<boolean>(false);
   const [frontCameraId, setFrontCameraId] = useState<string | null>(null);
-  const [backCameraId, setBackCameraId] = useState<string | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   // Mendapatkan perangkat kamera
@@ -29,12 +28,10 @@ const Page: React.FC = () => {
           );
 
           setFrontCameraId(frontCamera?.deviceId || null);
-          setBackCameraId(backCamera?.deviceId || null);
 
           // Default fallback jika label tidak ditemukan
           if (!frontCamera || !backCamera) {
             setFrontCameraId(videoInputs[0]?.deviceId || null);
-            setBackCameraId(videoInputs[1]?.deviceId || null);
           }
         } else {
           toast.error("Tidak ada perangkat kamera yang terdeteksi.");
@@ -72,7 +69,7 @@ const Page: React.FC = () => {
   const toggleCamera = async (): Promise<void> => {
     if (!showCamera) {
       try {
-        const initialCameraId = frontCameraId || backCameraId;
+        const initialCameraId = frontCameraId;
         await openCamera(initialCameraId);
         setShowCamera(true);
         toast.success("Kamera berhasil dibuka.");
@@ -95,7 +92,7 @@ const Page: React.FC = () => {
   return (
     <main className="w-full h-full text-white">
       <div
-        className={`container p-6 flex flex-col justify-center items-center ${
+        className={`w-full p-6 flex flex-col justify-center items-center ${
           showCamera ? "h-fit" : "h-screen"
         }`}
       >
