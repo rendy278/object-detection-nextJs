@@ -7,7 +7,6 @@ import "react-toastify/dist/ReactToastify.css";
 
 const Page: React.FC = () => {
   const [showCamera, setShowCamera] = useState<boolean>(false);
-  const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
   const [frontCameraId, setFrontCameraId] = useState<string | null>(null);
   const [backCameraId, setBackCameraId] = useState<string | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
@@ -74,8 +73,6 @@ const Page: React.FC = () => {
     if (!showCamera) {
       try {
         const initialCameraId = frontCameraId || backCameraId;
-        setCurrentCameraId(initialCameraId);
-
         await openCamera(initialCameraId);
         setShowCamera(true);
         toast.success("Kamera berhasil dibuka.");
@@ -92,39 +89,6 @@ const Page: React.FC = () => {
       }
       setShowCamera(false);
       toast.info("Kamera ditutup.");
-    }
-  };
-
-  // Mengganti kamera
-  const switchCamera = async (): Promise<void> => {
-    if (!frontCameraId && !backCameraId) {
-      toast.error("Perangkat tidak memiliki kamera depan atau belakang.");
-      return;
-    }
-
-    if (!frontCameraId || !backCameraId) {
-      toast.warning(
-        `Hanya kamera ${
-          frontCameraId ? "depan" : "belakang"
-        } yang tersedia pada perangkat ini.`
-      );
-      return;
-    }
-
-    const newCameraId =
-      currentCameraId === frontCameraId ? backCameraId : frontCameraId;
-
-    try {
-      await openCamera(newCameraId);
-      setCurrentCameraId(newCameraId);
-      toast.info(
-        `Berpindah ke ${
-          newCameraId === frontCameraId ? "kamera depan" : "kamera belakang"
-        }.`
-      );
-    } catch (error) {
-      console.error("Kesalahan saat mengganti kamera:", error);
-      toast.error("Tidak dapat mengganti kamera.");
     }
   };
 
@@ -150,15 +114,6 @@ const Page: React.FC = () => {
           >
             {showCamera ? "Tutup Kamera" : "Buka Kamera"}
           </button>
-
-          {showCamera && (
-            <button
-              onClick={switchCamera}
-              className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mb-4"
-            >
-              Ganti Kamera
-            </button>
-          )}
         </div>
 
         {showCamera && <ObjectDetection />}
