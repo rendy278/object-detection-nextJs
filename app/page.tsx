@@ -37,6 +37,10 @@ const Page: React.FC = () => {
             }
           });
         }
+
+        if (!frontCameraId && !backCameraId) {
+          toast.error("Tidak ada perangkat kamera yang terdeteksi.");
+        }
       } catch (error) {
         console.error("Error saat mendapatkan perangkat kamera:", error);
         toast.error("Gagal mendapatkan daftar perangkat kamera.");
@@ -44,19 +48,22 @@ const Page: React.FC = () => {
     };
 
     getCameraDevices();
-  }, []);
+  }, [frontCameraId, backCameraId]);
 
   // Membuka kamera
-  const openCamera = async (deviceId: string | null): Promise<void> => {
+  const openCamera = async (
+    deviceId: string | null
+  ): Promise<MediaStream | null> => {
     const constraints: MediaStreamConstraints = {
       video: deviceId ? { deviceId: { exact: deviceId } } : true,
     };
 
     try {
-      await navigator.mediaDevices.getUserMedia(constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      return stream;
     } catch (error) {
       console.error("Error saat membuka kamera:", error);
-      throw error;
+      return null;
     }
   };
 
@@ -64,15 +71,17 @@ const Page: React.FC = () => {
   const toggleCamera = async (): Promise<void> => {
     if (!showCamera) {
       try {
-        // Gunakan kamera depan sebagai default
         const initialCameraId = frontCameraId || backCameraId;
         setCurrentCameraId(initialCameraId);
 
-        await openCamera(initialCameraId);
-        setShowCamera(true);
-        toast.success("Kamera berhasil dibuka.");
+        const stream = await openCamera(initialCameraId);
+        if (stream) {
+          setShowCamera(true);
+          toast.success("Kamera berhasil dibuka.");
+        } else {
+          toast.error("Gagal membuka kamera.");
+        }
       } catch (error) {
-        console.error(error);
         toast.error(
           "Izin akses kamera diperlukan untuk menggunakan fitur ini."
         );
@@ -85,7 +94,7 @@ const Page: React.FC = () => {
 
   // Mengganti kamera
   const switchCamera = async (): Promise<void> => {
-    if (!frontCameraId || !backCameraId) {
+    if (!frontCameraId && !backCameraId) {
       toast.error("Perangkat tidak memiliki kedua kamera.");
       return;
     }
@@ -93,14 +102,23 @@ const Page: React.FC = () => {
     const newCameraId =
       currentCameraId === frontCameraId ? backCameraId : frontCameraId;
 
+    if (!newCameraId) {
+      toast.error("Tidak ada kamera yang tersedia untuk diganti.");
+      return;
+    }
+
     try {
-      await openCamera(newCameraId);
-      setCurrentCameraId(newCameraId);
-      toast.info(
-        `Berpindah ke ${
-          newCameraId === frontCameraId ? "kamera depan" : "kamera belakang"
-        }.`
-      );
+      const stream = await openCamera(newCameraId);
+      if (stream) {
+        setCurrentCameraId(newCameraId);
+        toast.info(
+          `Berpindah ke ${
+            newCameraId === frontCameraId ? "kamera depan" : "kamera belakang"
+          }.`
+        );
+      } else {
+        toast.error("Gagal mengganti kamera. Perangkat tidak mendukung.");
+      }
     } catch (error) {
       console.error("Kesalahan saat mengganti kamera:", error);
       toast.error("Tidak dapat mengganti kamera.");
