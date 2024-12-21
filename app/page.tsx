@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
 import ObjectDetection from "@/components/ObjectDetection";
 import { ToastContainer, toast } from "react-toastify";
@@ -6,11 +7,11 @@ import "react-toastify/dist/ReactToastify.css";
 
 const Page: React.FC = () => {
   const [showCamera, setShowCamera] = useState<boolean>(false);
-  const [isFrontCamera, setIsFrontCamera] = useState<boolean>(true);
+  const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
   const [frontCameraId, setFrontCameraId] = useState<string | null>(null);
   const [backCameraId, setBackCameraId] = useState<string | null>(null);
 
-  // Mengambil perangkat kamera saat komponen dimuat
+  // Mendapatkan perangkat kamera
   useEffect(() => {
     const getCameraDevices = async (): Promise<void> => {
       try {
@@ -19,69 +20,90 @@ const Page: React.FC = () => {
           (device) => device.kind === "videoinput"
         );
 
-        videoInputs.forEach((device) => {
-          if (device.label.toLowerCase().includes("front")) {
-            setFrontCameraId(device.deviceId);
-          } else if (
-            device.label.toLowerCase().includes("back") ||
-            device.label.toLowerCase().includes("environment")
-          ) {
-            setBackCameraId(device.deviceId);
-          }
-        });
+        if (videoInputs.length === 1) {
+          // Jika hanya ada satu kamera
+          setFrontCameraId(videoInputs[0].deviceId);
+          setBackCameraId(null);
+        } else {
+          // Jika ada lebih dari satu kamera
+          videoInputs.forEach((device) => {
+            if (device.label.toLowerCase().includes("front")) {
+              setFrontCameraId(device.deviceId);
+            } else if (
+              device.label.toLowerCase().includes("back") ||
+              device.label.toLowerCase().includes("environment")
+            ) {
+              setBackCameraId(device.deviceId);
+            }
+          });
+        }
       } catch (error) {
         console.error("Error saat mendapatkan perangkat kamera:", error);
+        toast.error("Gagal mendapatkan daftar perangkat kamera.");
       }
     };
+
     getCameraDevices();
   }, []);
 
-  // Fungsi untuk membuka dan menutup kamera
+  // Membuka kamera
+  const openCamera = async (deviceId: string | null): Promise<void> => {
+    const constraints: MediaStreamConstraints = {
+      video: deviceId ? { deviceId: { exact: deviceId } } : true,
+    };
+
+    try {
+      await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (error) {
+      console.error("Error saat membuka kamera:", error);
+      throw error;
+    }
+  };
+
+  // Menyalakan/Mematikan kamera
   const toggleCamera = async (): Promise<void> => {
     if (!showCamera) {
       try {
-        await openCamera(isFrontCamera);
+        // Gunakan kamera depan sebagai default
+        const initialCameraId = frontCameraId || backCameraId;
+        setCurrentCameraId(initialCameraId);
+
+        await openCamera(initialCameraId);
         setShowCamera(true);
-        toast.success("Izin kamera diberikan. Kamera terbuka.");
+        toast.success("Kamera berhasil dibuka.");
       } catch (error) {
-        console.error("Izin kamera ditolak atau terjadi kesalahan:", error);
+        console.error(error);
         toast.error(
           "Izin akses kamera diperlukan untuk menggunakan fitur ini."
         );
       }
     } else {
       setShowCamera(false);
+      toast.info("Kamera ditutup.");
     }
   };
 
-  // Fungsi untuk membuka kamera berdasarkan kamera depan atau belakang
-  const openCamera = async (useFrontCamera: boolean): Promise<void> => {
-    const constraints: MediaStreamConstraints = {
-      video: {
-        deviceId: useFrontCamera
-          ? frontCameraId ?? undefined
-          : backCameraId ?? undefined,
-      },
-    };
-    try {
-      await navigator.mediaDevices.getUserMedia(constraints);
-    } catch (error) {
-      if (!useFrontCamera && !backCameraId) {
-        toast.error("Kamera belakang tidak tersedia.");
-      }
-      throw error;
-    }
-  };
-
-  // Fungsi untuk beralih antara kamera depan dan belakang
+  // Mengganti kamera
   const switchCamera = async (): Promise<void> => {
-    setIsFrontCamera((prev) => !prev);
-    if (showCamera) {
-      try {
-        await openCamera(!isFrontCamera);
-      } catch (error) {
-        console.error("Gagal beralih kamera:", error);
-      }
+    if (!frontCameraId || !backCameraId) {
+      toast.error("Perangkat tidak memiliki kedua kamera.");
+      return;
+    }
+
+    const newCameraId =
+      currentCameraId === frontCameraId ? backCameraId : frontCameraId;
+
+    try {
+      await openCamera(newCameraId);
+      setCurrentCameraId(newCameraId);
+      toast.info(
+        `Berpindah ke ${
+          newCameraId === frontCameraId ? "kamera depan" : "kamera belakang"
+        }.`
+      );
+    } catch (error) {
+      console.error("Kesalahan saat mengganti kamera:", error);
+      toast.error("Tidak dapat mengganti kamera.");
     }
   };
 
@@ -99,6 +121,7 @@ const Page: React.FC = () => {
             sound danger.
           </h2>
         </div>
+
         <div className="flex flex-wrap justify-center gap-3 items-center">
           <button
             onClick={toggleCamera}
@@ -106,15 +129,17 @@ const Page: React.FC = () => {
           >
             {showCamera ? "Tutup Kamera" : "Buka Kamera"}
           </button>
-          {showCamera && backCameraId && (
+
+          {showCamera && (
             <button
               onClick={switchCamera}
               className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mb-4"
             >
-              Ganti ke Kamera {isFrontCamera ? "Belakang" : "Depan"}
+              Ganti Kamera
             </button>
           )}
         </div>
+
         {showCamera && <ObjectDetection />}
 
         <ToastContainer
