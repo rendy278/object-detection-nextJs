@@ -10,6 +10,7 @@ const Page: React.FC = () => {
   const [currentCameraId, setCurrentCameraId] = useState<string | null>(null);
   const [frontCameraId, setFrontCameraId] = useState<string | null>(null);
   const [backCameraId, setBackCameraId] = useState<string | null>(null);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   // Mendapatkan perangkat kamera
   useEffect(() => {
@@ -23,23 +24,14 @@ const Page: React.FC = () => {
         if (videoInputs.length === 1) {
           // Jika hanya ada satu kamera
           setFrontCameraId(videoInputs[0].deviceId);
-          setBackCameraId(null);
         } else {
-          // Jika ada lebih dari satu kamera
           videoInputs.forEach((device) => {
             if (device.label.toLowerCase().includes("front")) {
               setFrontCameraId(device.deviceId);
-            } else if (
-              device.label.toLowerCase().includes("back") ||
-              device.label.toLowerCase().includes("environment")
-            ) {
-              setBackCameraId(device.deviceId);
+            } else {
+              setBackCameraId(device.deviceId); // Fallback ke kamera lain
             }
           });
-        }
-
-        if (!frontCameraId && !backCameraId) {
-          toast.error("Tidak ada perangkat kamera yang terdeteksi.");
         }
       } catch (error) {
         console.error("Error saat mendapatkan perangkat kamera:", error);
@@ -48,22 +40,25 @@ const Page: React.FC = () => {
     };
 
     getCameraDevices();
-  }, [frontCameraId, backCameraId]);
+  }, []);
 
   // Membuka kamera
-  const openCamera = async (
-    deviceId: string | null
-  ): Promise<MediaStream | null> => {
+  const openCamera = async (deviceId: string | null): Promise<void> => {
     const constraints: MediaStreamConstraints = {
       video: deviceId ? { deviceId: { exact: deviceId } } : true,
     };
 
     try {
+      // Tutup stream sebelumnya jika ada
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      return stream;
+      setMediaStream(stream); // Simpan stream untuk ditutup nanti
     } catch (error) {
       console.error("Error saat membuka kamera:", error);
-      return null;
+      throw error;
     }
   };
 
@@ -74,19 +69,20 @@ const Page: React.FC = () => {
         const initialCameraId = frontCameraId || backCameraId;
         setCurrentCameraId(initialCameraId);
 
-        const stream = await openCamera(initialCameraId);
-        if (stream) {
-          setShowCamera(true);
-          toast.success("Kamera berhasil dibuka.");
-        } else {
-          toast.error("Gagal membuka kamera.");
-        }
+        await openCamera(initialCameraId);
+        setShowCamera(true);
+        toast.success("Kamera berhasil dibuka.");
       } catch (error) {
+        console.error(error);
         toast.error(
           "Izin akses kamera diperlukan untuk menggunakan fitur ini."
         );
       }
     } else {
+      // Tutup kamera
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+      }
       setShowCamera(false);
       toast.info("Kamera ditutup.");
     }
@@ -94,7 +90,7 @@ const Page: React.FC = () => {
 
   // Mengganti kamera
   const switchCamera = async (): Promise<void> => {
-    if (!frontCameraId && !backCameraId) {
+    if (!frontCameraId || !backCameraId) {
       toast.error("Perangkat tidak memiliki kedua kamera.");
       return;
     }
@@ -102,23 +98,14 @@ const Page: React.FC = () => {
     const newCameraId =
       currentCameraId === frontCameraId ? backCameraId : frontCameraId;
 
-    if (!newCameraId) {
-      toast.error("Tidak ada kamera yang tersedia untuk diganti.");
-      return;
-    }
-
     try {
-      const stream = await openCamera(newCameraId);
-      if (stream) {
-        setCurrentCameraId(newCameraId);
-        toast.info(
-          `Berpindah ke ${
-            newCameraId === frontCameraId ? "kamera depan" : "kamera belakang"
-          }.`
-        );
-      } else {
-        toast.error("Gagal mengganti kamera. Perangkat tidak mendukung.");
-      }
+      await openCamera(newCameraId);
+      setCurrentCameraId(newCameraId);
+      toast.info(
+        `Berpindah ke ${
+          newCameraId === frontCameraId ? "kamera depan" : "kamera belakang"
+        }.`
+      );
     } catch (error) {
       console.error("Kesalahan saat mengganti kamera:", error);
       toast.error("Tidak dapat mengganti kamera.");
